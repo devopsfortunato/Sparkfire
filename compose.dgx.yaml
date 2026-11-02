@@ -1,5 +1,5 @@
 # Sparkfire's stack for a 128 GB NVIDIA DGX Spark. Its models are fixed, chosen and measured to share the
-# Spark's memory (docs/validation.md): Saluki 27B for chat, PaddleOCR-VL-1.6, Parakeet, Hy-MT2,
+# Spark's memory (docs/validation.md): Ternary Bonsai 2 27B for chat, PaddleOCR-VL-1.6, Parakeet, Hy-MT2,
 # Qwen-Image-2.1-Turbo, FastH3 and YuE2, plus SearXNG for web search (compose.search.yaml).
 # Use through scripts/start-dgx-spark.sh so the memory-heavy services start
 # sequentially and are checked for readiness before the next model is loaded.
@@ -31,15 +31,18 @@ services:
     volumes:
       - ./data/dgx-models:/models
 
-  # Chat LLM on :8331: Underdog Saluki 27B, a 2-bit GGUF of Qwen3.8-27B with its vision add-on, in llama.cpp's
-  # llama-server. About 13 GiB on the GPU with the 64k context, loaded in seconds with no peak
-  # (docs/validation.md). --jinja gives it tool calls for web search, --mmproj image input. These are the flags
-  # its memory was measured with; the alias is the model id the app asks for.
-  saluki:
+  # Chat LLM on :8331: Ternary Bonsai 2 27B, a ternary (1.75 bpw) rebuild of Qwen3.8-27B from
+  # prism-ml/Ternary-Bonsai-2-27B-gguf, with its Q8_0 vision add-on, in llama-server built from PrismML's
+  # llama.cpp fork. About 10.5 GiB on the GPU with the 64k context: 5.53 GiB of weights, 0.59 GiB of vision and
+  # 4 GiB of KV cache, expected to load in seconds with no peak (docs/validation.md). --jinja gives it tool calls for
+  # search, --mmproj image input, and --image-max-tokens caps each image at 2,048 vision tokens (CUDA otherwise
+  # runs uncapped), so four page images take at most 8,192 tokens of the 64k window. These are the flags it is
+  # served with; the alias is the model id the app asks for.
+  bonsai:
     build:
       context: ./services/dgx-models/llama-server
-    image: sparkfire/llama-server:b11576
-    container_name: sparkfire-saluki
+    image: sparkfire/llama-server:prism-1a07bfa
+    container_name: sparkfire-bonsai
     restart: unless-stopped
     network_mode: host
     environment:
@@ -57,12 +60,14 @@ services:
               capabilities: [gpu]
     command:
       - --model
-      - /models/ConwayResearch/Underdog-Saluki-27B-1.0/Underdog-Saluki-27B-1.0-IQ2-mix.gguf
+      - /models/prism-ml/Ternary-Bonsai-2-27B-gguf/Ternary-Bonsai-2-27B-PTQ1_0.gguf
       - --mmproj
-      - /models/ConwayResearch/Underdog-Saluki-27B-1.0/mmproj-Underdog-Saluki-27B-1.0-F16.gguf
+      - /models/prism-ml/Ternary-Bonsai-2-27B-gguf/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf
       - --alias
-      - saluki-27b
+      - bonsai-2-27b
       - --jinja
+      - --image-max-tokens
+      - "2048"
       - -ngl
       - "99"
       - -fa

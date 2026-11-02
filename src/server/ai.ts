@@ -345,14 +345,19 @@ export async function openChatStream(
 }
 
 /**
- * Request fields for a thinking effort. Qwen3-family chat templates read `enable_thinking`; Qwen3.8 builds such
- * as Saluki also read `reasoning_effort` (low, medium, or xhigh by default). No effort keeps the model's default.
+ * Request fields for a thinking effort on Ternary Bonsai 2 27B. Its template reads `enable_thinking` (false
+ * pre-fills the generation prompt closed, so no reasoning is produced) and `reasoning_effort`, where `xhigh` is
+ * the default and `medium` is accepted. It takes `low` but then reasons about as long as `xhigh`, and any other
+ * value, `high` notably, makes the template raise and the request come back 500, so none is ever sent. No effort
+ * keeps the model's default.
  */
 export function thinkingOptions(effort?: ChatEffort): Record<string, unknown> {
   if (!effort) return {};
   if (effort === "off") return { chat_template_kwargs: { enable_thinking: false } };
   if (effort === "high") return { chat_template_kwargs: { enable_thinking: true } };
-  return { chat_template_kwargs: { enable_thinking: true, reasoning_effort: effort } };
+  // The model ignores its own `low` instruction, so medium is the shortest effort that actually shortens
+  // reasoning; `low` would only name an effort the model does not follow.
+  return { chat_template_kwargs: { enable_thinking: true, reasoning_effort: "medium" } };
 }
 
 /** A piece of one tool call in a stream; the fragments with the same index add up to the whole call. */

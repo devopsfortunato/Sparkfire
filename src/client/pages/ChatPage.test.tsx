@@ -59,7 +59,7 @@ describe("chatReferenceNames", () => {
 describe("web search in chat", () => {
   it("offers the Web switch only with a configured service and a tool-calling model", () => {
     const settings = structuredClone(defaultSettings);
-    // A model that has not declared tool calling (Saluki, the default, has).
+    // A model that has not declared tool calling (Bonsai 2, the default, does).
     settings.endpoints.llm.capabilities = ["text"];
     settings.webSearch = { enabled: true, provider: "searxng", baseUrl: "http://127.0.0.1:8338" };
     expect(webSearchUsable(settings)).toBe(false);

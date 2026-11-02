@@ -20,7 +20,7 @@ usage() {
 Usage: ./scripts/start-dgx-spark.sh [start|status|stop] [options]
 
 Set up and run Sparkfire's model stack on a 128 GB DGX Spark. Its models are fixed, chosen and measured
-to share the Spark's memory: Saluki 27B (chat), PaddleOCR-VL-1.6 (OCR), Parakeet-TDT-0.6B-v3
+to share the Spark's memory: Ternary Bonsai 2 27B (chat), PaddleOCR-VL-1.6 (OCR), Parakeet-TDT-0.6B-v3
 (transcription), Hy-MT2-1.8B-FP8 (translation), Qwen-Image-2.1-Turbo (images), FastH3 (video) and
 YuE2-3B (music), with SearXNG for web search in chat.
 
@@ -175,13 +175,23 @@ remove_legacy_containers() {
   printf 'Removed %s containers left from before the rename to Sparkfire.\n' "${#containers[@]}"
 }
 
+# The chat LLM's container was renamed with its service (Saluki became Ternary Bonsai 2). Left alone, an upgraded
+# install keeps `sparkfire-saluki` restarting beside the new container and holding the memory the stack's budget
+# assumes is free. It is named directly because the service it belonged to is no longer in the compose file.
+remove_retired_chat_container() {
+  docker container inspect sparkfire-saluki >/dev/null 2>&1 || return 0
+  docker rm -f sparkfire-saluki >/dev/null
+  printf 'Removed the Saluki chat container that Ternary Bonsai 2 replaced.\n'
+}
+
 if [[ "$ACTION" == "stop" ]]; then
   remove_legacy_containers
+  remove_retired_chat_container
   if [[ "$DEPLOY_APP" == "true" ]]; then
     "${COMPOSE[@]}" stop
     printf 'Sparkfire and the DGX model services are stopped. Persistent data was kept.\n'
   else
-    "${COMPOSE[@]}" stop saluki parakeet paddleocr-vl paddleocr-vlm hy-mt2 image-generation video-generation music-generation searxng dgx-status
+    "${COMPOSE[@]}" stop bonsai parakeet paddleocr-vl paddleocr-vlm hy-mt2 image-generation video-generation music-generation searxng dgx-status
     printf 'The DGX model services are stopped. Persistent model data was kept.\n'
   fi
   exit 0
@@ -201,7 +211,7 @@ show_status() {
   "${COMPOSE[@]}" ps
   printf '\nEndpoints\n'
   endpoint_status "System status" "http://127.0.0.1:8330/health"
-  endpoint_status "LLM (Saluki)" "http://127.0.0.1:8331/health"
+  endpoint_status "LLM (Bonsai 2)" "http://127.0.0.1:8331/health"
   endpoint_status "OCR" "http://127.0.0.1:8332/v1/models"
   endpoint_status "Transcription" "http://127.0.0.1:8333/health"
   endpoint_status "Translation" "http://127.0.0.1:8334/health"
@@ -243,7 +253,7 @@ if [[ "$ACCEPT_MODEL_LICENSES" == "true" ]]; then
 elif [[ ! -f "$license_marker" ]]; then
   cat >&2 <<'EOF'
 The model weights are not covered by Sparkfire's Apache 2.0 license.
-Review the publishers' model cards before downloading, Underdog Saluki 27B's (the chat model) among them.
+Review the publishers' model cards before downloading.
 In particular, Qwen/Qwen-Image-2.1-Turbo (image generation) uses the Qwen Research License, which is
 non-commercial, and FastH3 (video generation) uses the MiniMax H3 Community License, which grants use only
 "worldwide, excluding" the European Union, the United Kingdom, South Korea and the United States, and asks
@@ -268,7 +278,7 @@ fi
 
 if [[ "$SKIP_BUILD" != "true" ]]; then
   printf '\nBuilding Sparkfire and DGX service images...\n'
-  build_targets=(model-downloader saluki parakeet paddleocr-vl hy-mt2 image-generation music-generation dgx-status)
+  build_targets=(model-downloader bonsai parakeet paddleocr-vl hy-mt2 image-generation music-generation dgx-status)
   if [[ "$VIDEO_BACKEND" == "fasth3" ]]; then build_targets+=(video-generation); fi
   if [[ "$DEPLOY_APP" == "true" ]]; then build_targets+=(app); fi
   if [[ "$REFRESH_IMAGES" == "true" ]]; then
@@ -326,14 +336,13 @@ download_model() {
 
 if [[ "$SKIP_DOWNLOAD" != "true" ]]; then
   printf '\nDownloading pinned model revisions (existing downloads are reused)...\n'
-  # The chat model and its vision add-on. Not pinned yet: Hugging Face could not be reached when this was
-  # written, so this takes the current revision once and reuses it; pin its commit here.
+  # The chat model and its vision add-on.
   download_model \
-    "ConwayResearch/Underdog-Saluki-27B-1.0" \
-    "main" \
-    "ConwayResearch/Underdog-Saluki-27B-1.0" \
-    "Underdog-Saluki-27B-1.0-IQ2-mix.gguf" \
-    "mmproj-Underdog-Saluki-27B-1.0-F16.gguf"
+    "prism-ml/Ternary-Bonsai-2-27B-gguf" \
+    "94dd51cdbbec5309ed8b76a12f3268bc4fdceb93" \
+    "prism-ml/Ternary-Bonsai-2-27B-gguf" \
+    "Ternary-Bonsai-2-27B-PTQ1_0.gguf" \
+    "Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf"
   download_model \
     "PaddlePaddle/PaddleOCR-VL-1.6" \
     "c5630abae1d940eafe0697512a0325494b02ab42" \
@@ -409,15 +418,16 @@ start_service() {
 }
 
 remove_legacy_containers
+remove_retired_chat_container
 
-# The stack peaks around 60 GiB while its models load: about 39 GiB for the services, plus Saluki's 13 to
-# 21.5 GiB (docs/validation.md). Next to something that already holds most of the Spark, another LLM for
+# The stack peaks around 60 GiB while its models load: about 39 GiB for the services, plus Bonsai 2's 10.5 to
+# 17 GiB (docs/validation.md). Next to something that already holds most of the Spark, another LLM for
 # instance, it would run the machine out of memory halfway, so a fresh start first checks there is room. With
 # the stack's models already running, their memory counts as used, so the check is skipped.
 STACK_START_GIB=64
 check_memory_for_start() {
   local running available
-  running="$(docker ps --filter "label=com.docker.compose.project=sparkfire" --format '{{.Names}}' | grep -cE '^sparkfire-(saluki|parakeet|paddleocr-vlm|hy-mt2|image-generation)$' || true)"
+  running="$(docker ps --filter "label=com.docker.compose.project=sparkfire" --format '{{.Names}}' | grep -cE '^sparkfire-(bonsai|parakeet|paddleocr-vlm|hy-mt2|image-generation)$' || true)"
   ((running == 0)) || return 0
   available="$(awk '/^MemAvailable:/ {printf "%d", $2 / 1048576}' /proc/meminfo)"
   ((available >= STACK_START_GIB)) && return 0
@@ -430,9 +440,9 @@ check_memory_for_start() {
 if [[ "$CHECK_MEMORY" == "true" ]]; then check_memory_for_start; fi
 
 printf '\nStarting the models sequentially...\n'
-# Saluki first: it loads in seconds with no peak, and holding its 13 GiB before the others start keeps a restart
-# from leaving it without room.
-start_service saluki "LLM (Saluki 27B)" "http://127.0.0.1:8331/health" 600
+# Bonsai 2 first: it loads in seconds with no peak, and holding its ~10.5 GiB before the others start keeps a
+# restart from leaving it without room.
+start_service bonsai "LLM (Ternary Bonsai 2 27B)" "http://127.0.0.1:8331/health" 600
 # Parakeet's adapter answers /v1/models before the engine has loaded, so readiness is checked on /health.
 start_service parakeet "Transcription" "http://127.0.0.1:8333/health" 600
 start_service paddleocr-vlm "OCR vision-language model" "http://127.0.0.1:8342/v1/models" 600

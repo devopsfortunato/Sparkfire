@@ -369,7 +369,7 @@ describe("v2 workflow architecture", () => {
     const store = await import("./store.js");
     await store.initializeData();
     const settings = await store.readSettings();
-    await store.writeSettings({ ...settings, endpoints: { ...settings.endpoints, llm: { enabled: true, baseUrl: `http://127.0.0.1:${address.port}/v1`, model: "saluki-27b", apiKey: "", capabilities: ["text"] } } });
+    await store.writeSettings({ ...settings, endpoints: { ...settings.endpoints, llm: { enabled: true, baseUrl: `http://127.0.0.1:${address.port}/v1`, model: "bonsai-2-27b", apiKey: "", capabilities: ["text"] } } });
     const created = await store.createMindMapJob("Explain the Sparkfire workspace", { depth: 3, breadth: 4 });
     const processor = await import("./processor.js");
     await processor.processRun(created.id, created.runs[0].id);

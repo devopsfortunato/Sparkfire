@@ -71,9 +71,10 @@ API additions:
 ## Chat
 
 - **Thinking control.** Off, Low, Medium and High under the composer, remembered per browser. It is sent
-  as `chat_template_kwargs`: `enable_thinking`, plus `reasoning_effort` (low, medium) for Qwen3.8-based
-  models; High keeps the model's own default. Models without a thinking mode ignore it. Mind maps always
-  ask with thinking off, so a reasoning model cannot spend their whole token budget thinking and return no map.
+  as `chat_template_kwargs`: Off turns `enable_thinking` off; Low and Medium ask for `reasoning_effort`
+  `medium`, the shortest effort the model honours (its own `low` is ignored, and `high` would be rejected);
+  High keeps the model's own default. Models without a thinking mode ignore it. Mind maps always ask with
+  thinking off, so a reasoning model cannot spend their whole token budget thinking and return no map.
 - **Reasoning.** It streams into a foldable block while the model thinks and is saved with the answer. It
   is not sent back to the model on later turns.
 - **Attachments.** A + button, paste, or drag and drop add up to 8 files per message.
@@ -91,7 +92,7 @@ API additions:
 - **Web search.** A **Web** switch under the composer lets the model search the web and read pages while it
   answers. New conversations start with it on, and the choice is saved with the chat.
   - **What it needs.** The stack's SearXNG, which the app reaches on the Spark's compose network, and a model
-    that declares tool calling: Saluki does, with `llama-server --jinja`. A workspace on another machine has
+    that declares tool calling: Bonsai 2 does, with `llama-server --jinja`. A workspace on another machine has
     no SearXNG, so the switch stays hidden there.
   - **How it works.** The model gets two tools, `web_search` (five results: title, URL, snippet) and
     `fetch_page` (the page's main text through Readability, at most 24,000 characters). The server runs the
@@ -136,7 +137,7 @@ only video can be left out, where its license does not apply.
 
 | Service | Model |
 |---|---|
-| LLM (:8331) | Underdog Saluki 27B (`saluki-27b`), a 2-bit GGUF of Qwen3.8-27B with its vision add-on, in llama.cpp's `llama-server` |
+| LLM (:8331) | Ternary Bonsai 2 27B (`bonsai-2-27b`), PrismML's ternary (1.75 bpw) rebuild of Qwen3.8-27B with its Q8_0 vision add-on, in `llama-server` built from PrismML's llama.cpp fork |
 | OCR (:8332) | PaddleOCR-VL-1.6 (layout adapter + vLLM VLM on :8342) |
 | Speech (:8333) | Parakeet-TDT-0.6B-v3 (parakeet.cpp; CC BY 4.0; 25 European languages) |
 | Translation (:8334) | Hy-MT2-1.8B-FP8 |
@@ -145,16 +146,20 @@ only video can be left out, where its license does not apply.
 | Music (:8339) | YuE2-3B (CC BY-NC 4.0 weights with a creator permission) |
 | Web search (:8338) | SearXNG |
 
-- **Saluki.** `services/dgx-models/llama-server` builds `llama-server` from llama.cpp `b11576` (pinned commit)
-  for the GB10 (sm_121), on the same PyTorch base image as Parakeet. The start script downloads the GGUF and
-  its vision add-on and starts Saluki first, with the flags its memory was measured with: `--jinja -ngl 99
-  -fa on -c 65536 --parallel 1 --alias saluki-27b`. Its download takes the current revision (`main`) until
-  its commit is pinned. It replaces upstream's bundled Qwen3.6 LLM, at half the memory and with no loading peak.
+- **Ternary Bonsai 2.** `services/dgx-models/llama-server` builds `llama-server` from [PrismML's llama.cpp
+  fork](https://github.com/PrismML-Eng/llama.cpp) at commit `1a07bfa` (the image tag names it), which carries the
+  PTQ1_0 ternary kernels upstream llama.cpp lacks, for the GB10 (sm_121), on the same PyTorch base image as
+  Parakeet. The start script downloads the pinned files (the 1.75-bit weights and their Q8_0 vision add-on,
+  `prism-ml/Ternary-Bonsai-2-27B-gguf` at Hugging Face revision `94dd51cd`) and starts Bonsai 2 first, with
+  these flags: `--jinja --image-max-tokens 2048 -ngl 99 -fa on -c 65536 --parallel 1 --alias bonsai-2-27b`. It
+  serves 64k of the model's 262k training context and replaces Saluki at about 2.5 GiB less GPU memory,
+  expected to load with no peak like its predecessor, trading about 1.6 times slower prefill for 11 more
+  tokens a second of decode.
 - **Every start applies the stack.** The app takes each model from `REFERENCE_SERVICE_CATALOG` and only the
   address from where the stack runs: the start scripts' environment first, then the host chosen in setup.
   Saved services, models and keys are replaced, and a save from Settings cannot change them. An install set up
   by hand goes through setup in the browser again. Upgraded installs therefore move to PaddleOCR-VL,
-  Qwen-Image-2.1-Turbo and Saluki by themselves.
+  Qwen-Image-2.1-Turbo and Bonsai 2 by themselves.
 - **Retired.** Unlimited-OCR, Z-Image-Turbo and Qwen-Image 2.1 (40 steps) are no longer part of the stack;
   the start script removes the Unlimited-OCR container, and earlier model files stay in `data/dgx-models`
   until deleted. The adapters keep their profiles for those model ids. LocateAnything-3B, the grounding
@@ -285,19 +290,17 @@ npm run dev
 
 ## Roadmap
 
-1. **Pin Saluki:** pin its Hugging Face commit in `scripts/start-dgx-spark.sh`, and measure the
-   `llama-server` image on the Spark.
-2. **Safer LLM restarts:** the start script starts Saluki first; replace `restart: unless-stopped` with a
+1. **Safer LLM restarts:** the start script starts Bonsai 2 first; replace `restart: unless-stopped` with a
    bounded restart too, so a crash cannot turn into an out-of-memory loop.
-3. **Image sizes:** make Qwen-Image-2.1-Turbo's 2K sizes the default for prompts with text.
-4. **Security:**
+2. **Image sizes:** make Qwen-Image-2.1-Turbo's 2K sizes the default for prompts with text.
+3. **Security:**
    - Remove the open `cors()`.
    - Redact API keys in `GET /api/settings`.
    - Add a host allowlist and an optional access token.
    - Run the app and service containers as a non-root user (Trivy DS-0002); existing `data/` folders need
      their ownership migrated.
-5. **Speed:** send OCR pages and ASR chunks with bounded concurrency.
-6. **Long documents:**
+4. **Speed:** send OCR pages and ASR chunks with bounded concurrency.
+5. **Long documents:**
    - Give chat and mind maps a token budget, then retrieval.
    - Add full-text search.
-7. **Image editing** with Qwen-Image 2.1: reference images, masks, and grounding → edit.
+6. **Image editing** with Qwen-Image 2.1: reference images, masks, and grounding → edit.

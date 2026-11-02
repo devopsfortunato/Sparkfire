@@ -123,7 +123,7 @@ export function OnboardingPage({ settings, canCancel, onComplete, onCancel }: {
         <div className="onboarding-intro">
           <span>{canCancel ? "Deployment setup" : "Welcome to Sparkfire"}</span>
           <h1>Connect your AI services</h1>
-          <p>Sparkfire runs on its own model stack on a DGX Spark, with one model per service chosen to share its memory: Saluki 27B for chat, PaddleOCR-VL, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3 and YuE2. Tell Sparkfire where the stack runs; the models come with it.</p>
+          <p>Sparkfire runs on its own model stack on a DGX Spark, with one model per service chosen to share its memory: Ternary Bonsai 2 27B for chat, PaddleOCR-VL, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3 and YuE2. Tell Sparkfire where the stack runs; the models come with it.</p>
         </div>
 
         {canCancel && configuredCount > 0 && <div className="onboarding-existing-note">

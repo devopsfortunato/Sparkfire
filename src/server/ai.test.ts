@@ -268,9 +268,12 @@ describe("chat thinking", () => {
   it("maps each effort onto the chat template switches", () => {
     expect(thinkingOptions()).toEqual({});
     expect(thinkingOptions("off")).toEqual({ chat_template_kwargs: { enable_thinking: false } });
-    expect(thinkingOptions("low")).toEqual({ chat_template_kwargs: { enable_thinking: true, reasoning_effort: "low" } });
+    // The template takes `low`, but the model reasons about as long as its default anyway, so Low asks for
+    // medium, the shortest effort that shortens reasoning at all.
+    expect(thinkingOptions("low")).toEqual({ chat_template_kwargs: { enable_thinking: true, reasoning_effort: "medium" } });
     expect(thinkingOptions("medium")).toEqual({ chat_template_kwargs: { enable_thinking: true, reasoning_effort: "medium" } });
-    // High leaves the effort to the model's default (xhigh on Qwen3.8), which older templates also accept.
+    // High leaves the effort to the model's default (xhigh). It never sends "high", which the template rejects
+    // with a 500.
     expect(thinkingOptions("high")).toEqual({ chat_template_kwargs: { enable_thinking: true } });
   });
 

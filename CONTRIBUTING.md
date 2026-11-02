@@ -15,7 +15,7 @@ how the system works; read it before a larger change.
   lines that show it. Leave out personal files, host names and addresses.
 - **Larger changes:** open an issue first, so we agree on the approach before you spend time on it.
 - **The models are fixed.** Sparkfire runs one model per service, chosen and measured to share the
-  Spark's 121 GiB (Saluki 27B, PaddleOCR-VL-1.6, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3, YuE2,
+  Spark's 121 GiB (Ternary Bonsai 2 27B, PaddleOCR-VL-1.6, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3, YuE2,
   with SearXNG). Pull requests that let users pick models, endpoints or keys will not be merged. Proposing
   a different model is welcome, with its memory measured next to the rest of the stack on a Spark
   (see [docs/validation.md](docs/validation.md)).

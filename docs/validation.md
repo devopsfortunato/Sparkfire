@@ -114,43 +114,89 @@ is one chunk either way.
   container's health check does not fail while it transcribes.
 - **Status page:** the system monitor labels the engine's GPU process "ASR" and names its model.
 
-## LLM: Underdog Saluki 27B (the default)
+## LLM: Ternary Bonsai 2 27B (the default)
 
-[Saluki](https://huggingface.co/ConwayResearch/Underdog-Saluki-27B-1.0) is a 2-bit GGUF of Qwen3.8-27B
-(7.9 GB) with an optional vision add-on. It ran in stock `llama-server` (CUDA) with `--jinja -ngl 99 -fa on
--c 65536 --parallel 1`, on the LLM port, so the app used it unchanged.
+[Ternary Bonsai 2 27B](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) (PrismML, 2026-09-17) replaces
+Saluki 27B as the stack's chat model. It is derived from Qwen3.8-27B with the architecture unchanged: every
+language-model weight is ternary ({−1, 0, +1}) in a rotated basis with one FP16 scale per 128 weights, packed as
+PTQ1_0 at 1.75 bits per weight for 5.95 GB (5.53 GiB). The Q8_0 vision pack adds 0.63 GB (0.59 GiB). It was
+trained for 262,144 tokens of context, reads images and calls tools natively, and is Apache 2.0.
 
-| | Saluki 27B | Qwen3.6-35B-A3B NVFP4 (retired) |
+| | Ternary Bonsai 2 27B | Qwen3.8-27B FP16 |
 | --- | --- | --- |
-| GPU memory | 13.0 GiB, loads in about 5 s with no peak | about 28 GiB, about 60 GB peak while loading |
-| Decode | 22–23 tok/s | 20–54 tok/s |
-| Prefill | about 740 tok/s up to 6k tokens; 703 tok/s at 25k | faster |
+| Overall, 14 benchmarks | 84.78 | 86.32 |
+| Math | 96.57 | 97.06 |
+| Coding | 89.42 | 89.07 |
+| Instruction following | 82.66 | 81.25 |
+| Agentic tool calling (BFCL v3) | 74.92 | 76.74 |
+| Vision (MMMU-Pro) | 75.49 | 81.73 |
+| OCR (OCR Bench v2) | 56.88 | 60.99 |
 
-It read a table page from an image correctly, answered reasoning questions, and produced a working mind map
-through the app.
+- **Quality is the publisher's.** The figures come from EvalScope with vLLM on an H100, in thinking mode, over 14
+  benchmarks: 84.78 against the full-precision base's 86.32, or 98.2%. A conventional IQ2_XXS build of the same
+  base scores 72.59 at 7.27 GB, the quality class of the 2-bit IQ2-mix Saluki build this replaces, so the swap is
+  both stronger and smaller. Vision and the most demanding reasoning carry the loss; coding and instruction
+  following are already at or above the base.
+- **Mind maps need thinking off.** Twice on 2026-10-10 the mind-map job on six pages of prose failed with "The
+  endpoint returned no content" because a reasoning model spent the module's whole 8192-token completion budget
+  thinking. The same request with `chat_template_kwargs: {"enable_thinking": false}` returned valid JSON (four
+  branches) in 32 s and 529 tokens. The mind-map executor sends that same `enable_thinking: false` with every
+  mind-map request, including the repair request. That failure was measured with Saluki, and the next model has
+  the same default-on reasoning, so the treatment stays.
 
-- **Context:** 65,536 tokens (64k) in one slot (`-c 65536 --parallel 1`). The model was trained for 262,144
-  (256k), so the window can grow at the cost of more cache memory. The Qwen3.6 LLM it replaced used the same
-  64k (`--max-model-len 65536`).
-- **Memory breakdown:**
-  - 13.0 GiB on the GPU: about 7.3 GiB of weights, 0.9 GiB for the vision add-on, and roughly 4.8 GiB for the
-    64k context cache and working buffers.
-  - 8.5 GiB of process memory, mostly the memory-mapped GGUF file. The system can reclaim it, and
-    `--no-mmap` avoids holding it next to the GPU copy. The chat's thinking control maps onto its template (`enable_thinking`,
-`reasoning_effort`: low, medium, xhigh).
-- **Mind maps need thinking off.** Twice on 2026-10-10 the mind-map job on six pages of prose failed with
-  "The endpoint returned no content": Saluki's default-on reasoning consumed the module's whole
-  8192-token completion budget and the answer came back empty. The same request with
-  `chat_template_kwargs: {"enable_thinking": false}` returned valid JSON (four branches) in 32 s and
-  529 tokens. Chat already exposes the thinking control; the mind-map executor now sends that same
-  `enable_thinking: false` with every mind-map request, including the repair request.
+**Memory and speed on a GB10 recipe.** Measured with `llama-bench` on the verified GB10 recipe
+([sxuff/ternary-bonsai-2-27b-gx10](https://github.com/sxuff/ternary-bonsai-2-27b-gx10)), on the same
+GB10/aarch64/CUDA 13 hardware class as the Spark:
+
+| Packing | Weights | Decode | Prompt processing |
+| --- | --- | --- | --- |
+| PTQ1_0, the stack's | 5.53 GiB | 34.21 tok/s | 454.6 tok/s |
+| PQ2_0, the same ternary weights in 2-bit slots, same quality | 6.70 GiB | 29.56 tok/s | 1025.2 tok/s |
+
+The stack serves PTQ1_0 because memory is the constraint the stack is designed around; PQ2_0 is the noted
+alternative if prompt processing matters more than 1.2 GiB.
+
+- **Expected served footprint.** 5.53 GiB of weights, 0.59 GiB of Q8_0 vision, 4 GiB of KV cache (64 KiB per
+  token at 64k) and working buffers come to about 10.5 GiB of GPU memory, against Saluki's measured 13.0 GiB,
+  and about 6.6 GiB of memory-mapped process memory, against 8.5 GiB. Against Saluki that is 11 more tokens a
+  second of decode and about 1.6 times slower prefill (454 against ~740 tok/s): the documented trade.
+  `--no-mmap` still avoids holding the mapped file next to the GPU copy.
+- **Not a Sparkfire measurement yet.** The recipe pins the model file's and the server binary's SHA-256. The
+  served figure has yet to be confirmed on a Spark (with `nvidia-smi` or `docker stats`), so until then the
+  numbers above are the recipe's measurements plus the KV-cache arithmetic.
+- **Serving.** `llama-server` is built from [PrismML's llama.cpp fork](https://github.com/PrismML-Eng/llama.cpp)
+  pinned at commit `1a07bfa5f4144274c8f1c9963821dd9d9a51854b`, because the PTQ1_0 packing needs its ternary
+  hybrid-attention kernels; upstream llama.cpp (from `b11556`, the release that added the Hadamard runtime) runs
+  only the larger Q2_0 packing. The download is pinned to Hugging Face revision
+  `94dd51cdbbec5309ed8b76a12f3268bc4fdceb93`. Same port 8331, same OpenAI surface, `--jinja` tools, `--mmproj`
+  images, the context kept at 65,536 (the model supports 262,144, and more cache costs 64 KiB per token) and one
+  slot (`-c 65536 --parallel 1`). Images are capped at 2,048 vision tokens each with `--image-max-tokens`, because
+  CUDA otherwise runs uncapped and one large page image could fill the 64k window; four attached page images then
+  take at most 8,192 tokens.
+- **Thinking control (from the model's files and cards, not tried on the Spark yet).** The chat template disables
+  reasoning with `chat_template_kwargs.enable_thinking=false`, which is what mind maps send. It takes
+  `reasoning_effort` as `xhigh`, `medium` or `low`, with `xhigh` the default; the publisher's card and known
+  issues say the model ignores its own `low` instruction and that other values, `high` among them, make the
+  template raise, which reaches the app as HTTP 500. The app therefore maps Low to `medium`, Medium to `medium`
+  and High to the model's default, and never sends `high`. That is also how chat steers away from empty answers,
+  together with the model's guidance that output limits be generous: chat streams the reasoning, while mind maps
+  turn thinking off and keep the 8,192-token answer budget. The template requires exactly one system message, at
+  the start, which the app's messages already satisfy.
+- **Tool calling is the weak spot.** BFCL v3 gives 74.92, the lowest of its skills, so a malformed tool call in
+  web search is the known risk to watch.
+
+**Saluki 27B (retired).** The chat model until this swap, measured on the Spark next to the stack: 13.0 GiB of
+GPU memory with 8.5 GiB of reclaimable process memory, 22–23 tok/s decode, about 740 tok/s prefill up to 6k
+tokens, a 64k context in one slot, and about 5 s to load with no peak. It was a 2-bit IQ2-mix GGUF of
+Qwen3.8-27B with an F16 vision add-on.
 
 ## Video generation: FastH3 through the service
 
 The `video-generation` service (ComfyUI 0df64eb behind the adapter) on 2026-10-11, next to the four-service
-stack (PaddleOCR-VL, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo) and Saluki 27B in `llama-server`, plus a few
-small containers that are not Sparkfire's. Requests went straight to the service, one at a time, with
-the same prompt and a sound description; host memory is MemTotal − MemAvailable, sampled every 0.5 s.
+stack (PaddleOCR-VL, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo) and Saluki 27B (the chat model at the time) in
+`llama-server`, plus a few small containers that are not Sparkfire's. Requests went straight to the service, one
+at a time, with the same prompt and a sound description; host memory is MemTotal − MemAvailable, sampled every
+0.5 s.
 
 Before any video work the Spark used about 50 GiB. Starting the service added nothing measurable: ComfyUI
 loads no weights until the first job (0.65 GiB of GPU memory for its CUDA context).
@@ -299,7 +345,7 @@ measured with every service loaded and idle.
 | `sparkfire-hy-mt2` | 2.4 GiB | 3.0 GiB | 5.4 GiB |
 | `sparkfire-paddleocr-vl` (layout, CPU) | — | 0.8 GiB | 0.8 GiB |
 | `sparkfire-app-1`, `sparkfire-redis-1`, `sparkfire-dgx-status` | — | 0.1 GiB together | 0.1 GiB |
-| Saluki 27B in `llama-server` (the fork's reference LLM, run next to the stack) | 13.0 GiB | 8.5 GiB, reclaimable | 13–21.5 GiB |
+| Saluki 27B in `llama-server` (retired; run next to the stack at the time) | 13.0 GiB | 8.5 GiB, reclaimable | 13–21.5 GiB |
 
 | State | Used |
 | --- | --- |
@@ -316,7 +362,7 @@ measured with every service loaded and idle.
 Parakeet's peak, about 1.8 GiB of GPU memory and 1.5 GiB of RAM, was measured during the 16.8-minute
 transcription through the app with the 30 s chunk target. The 2026-10-10 load pass ran with Saluki as the
 LLM (started by hand) and the mind map requested directly with thinking off, so its figures describe the
-Saluki configuration, the stack's LLM now, not the retired Qwen3.6 LLM; the busy peak of Qwen3.6 plus Parakeet
+Saluki configuration, the stack's LLM at the time, not the retired Qwen3.6 LLM; the busy peak of Qwen3.6 plus Parakeet
 was only ever estimated. The 92.4 GiB peak belongs to the pass that ran before Hy-MT2's wedge was found (see
 Known issues): the LLM spent its whole 8192-token budget on a reasoning trace while every translation
 request hung.

@@ -1,18 +1,25 @@
-# The chat LLM, Saluki 27B: llama.cpp's llama-server (ggml on CUDA), which speaks the OpenAI API itself, so it
-# needs no adapter. Like Parakeet, both stages use the PyTorch base image the other GPU services use, so the CUDA
-# toolkit that builds the engine is the one that runs it, and its layers are already on the Spark.
+# The chat LLM, Ternary Bonsai 2 27B: llama.cpp's llama-server (ggml on CUDA), which speaks the OpenAI API itself,
+# so it needs no adapter. The model is a ternary rebuild of Qwen3.8-27B from prism-ml/Ternary-Bonsai-2-27B-gguf,
+# and its PTQ1_0 packing needs the ternary hybrid-attention kernels in PrismML's llama.cpp fork, which upstream
+# llama.cpp does not have. Like Parakeet, both stages use the PyTorch base image the other GPU services use, so
+# the CUDA toolkit that builds the engine is the one that runs it, and its layers are already on the Spark.
 ARG PYTORCH_IMAGE=nvcr.io/nvidia/pytorch:25.11-py3@sha256:4a85d8cf6fb3a943280960b8948cf4e9b6eca77b4414c68c9b2c7bb863f79b70
-ARG LLAMA_CPP_REF=b11576
-ARG LLAMA_CPP_COMMIT=358a420ec4ed59b6b0be08b1d1f71dd478b99a99
+ARG LLAMA_CPP_REPO=https://github.com/PrismML-Eng/llama.cpp.git
+ARG LLAMA_CPP_REF=prism
+ARG LLAMA_CPP_COMMIT=1a07bfa5f4144274c8f1c9963821dd9d9a51854b
 
 FROM ${PYTORCH_IMAGE} AS build
 
+ARG LLAMA_CPP_REPO
 ARG LLAMA_CPP_REF
 ARG LLAMA_CPP_COMMIT
 
 # The pinned base already has cmake, git and the CUDA 13 toolkit, so nothing is installed from apt.
-# A tag can be moved, so the build stops unless it is the exact commit that was pinned.
-RUN git clone --branch "${LLAMA_CPP_REF}" --depth 1 https://github.com/ggml-org/llama.cpp.git /src/llama.cpp \
+# The commit is an older point on the fork's branch, not its tip, so the clone takes the branch's history but no
+# file blobs (a partial clone: git fetches a tree's blobs when it checks it out), and the build stops unless HEAD
+# is the exact commit that was pinned.
+RUN git clone --filter=blob:none --branch "${LLAMA_CPP_REF}" "${LLAMA_CPP_REPO}" /src/llama.cpp \
+    && git -C /src/llama.cpp checkout "${LLAMA_CPP_COMMIT}" \
     && test "$(git -C /src/llama.cpp rev-parse HEAD)" = "${LLAMA_CPP_COMMIT}"
 
 # Arch 121 is the GB10 (sm_121); ggml's CMake turns it into 121a itself. Static libraries keep ggml and the

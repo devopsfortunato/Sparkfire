@@ -43,7 +43,7 @@ comes from.
 | `src/server/gpu-lane.ts` | The GPU lane: heavy runs one at a time, freeing the previous heavy service first |
 | `src/shared/` | Types and rules shared by client and server: `contracts.ts`, `module-router.ts`, `workflows.ts` |
 | `src/client/` | React pages, components, API client, and `styles.css` (all colours are `--sk-*` tokens) |
-| `services/dgx-models/` | Model service containers and adapters (Python/FastAPI): llama-server for Saluki, image generation, video generation (ComfyUI), music generation (YuE2), PaddleOCR-VL, Parakeet ASR, translation, downloader |
+| `services/dgx-models/` | Model service containers and adapters (Python/FastAPI): llama-server for Bonsai 2, image generation, video generation (ComfyUI), music generation (YuE2), PaddleOCR-VL, Parakeet ASR, translation, downloader |
 | `services/dgx-status/` | The DGX system monitor service |
 | `compose.yaml` | App and Redis |
 | `compose.spark.yaml` | Adds the system monitor on a DGX Spark |
@@ -132,7 +132,7 @@ Without a Spark, give the API a stack address so it skips setup (the services th
 - **Web search** in chat is a tool-call loop in `chat-generation.ts`: `web_search` (SearXNG) and
   `fetch_page` (`page-fetch.ts`, which refuses private addresses on the connection itself), at most 6
   rounds. It runs only when the chat turned it on (new chats start on), `settings.webSearch` is configured (the
-  stack's SearXNG, all-in-one only) and the LLM declares the `tools` capability (Saluki does). The searches and sources are saved as the answer's `activity` and never sent back
+  stack's SearXNG, all-in-one only) and the LLM declares the `tools` capability (Bonsai 2 does). The searches and sources are saved as the answer's `activity` and never sent back
   to the model.
 
 ## Model services (the DGX Spark stack)
@@ -143,7 +143,7 @@ The models are fixed, chosen and measured to share the Spark's memory. Only vide
 | --- | --- | --- |
 | 54321 | Sparkfire app | |
 | 8330 | System monitor | |
-| 8331 | Language model | Saluki 27B (`saluki-27b`) in llama.cpp's llama-server (`services/dgx-models/llama-server`) |
+| 8331 | Language model | Ternary Bonsai 2 27B (`bonsai-2-27b`) in llama-server built from PrismML's llama.cpp fork (`services/dgx-models/llama-server`) |
 | 8332 | OCR | PaddleOCR-VL-1.6 adapter (+ its vLLM on 8342) |
 | 8333 | Speech recognition | Parakeet-TDT-0.6B-v3 |
 | 8334 | Translation | Hy-MT2-1.8B-FP8 |
@@ -155,15 +155,16 @@ The models are fixed, chosen and measured to share the Spark's memory. Only vide
 Rules for this layer:
 
 - **Memory is the constraint.** The Spark has about 121 GiB of unified memory shared by CPU and GPU. The
-  stack idles around 29 GiB plus Saluki's 13 GiB, which starts first and has no loading peak. There is no
-  grounding service. Video generation loads nothing until a job and frees its weights after
+  stack idles around 29 GiB plus Bonsai 2's 10.5 GiB, which starts first and is expected to load with no
+  peak. There is no grounding service. Video generation loads nothing until a job and frees its weights after
   ten idle minutes; a job adds 35 to 48 GiB with Fast and up to 57 GiB with Sharp while it runs. Music
   does the same with about 20 GiB a song. Do not start extra models, large builds or big downloads while
   services are loading, and check free memory (`free -g`) before running an LLM next to the stack: one
   that needs most of the Spark does not fit beside it.
 - **Pin everything.** Model downloads use exact Hugging Face revisions in `scripts/start-dgx-spark.sh`;
-  container images use exact tags or digests; Python requirements are pinned. Saluki's download is the one
-  exception for now (`main`): pin its commit when Hugging Face can be reached.
+  container images use exact tags or digests; Python requirements are pinned. The chat model's download is
+  pinned like the others (`prism-ml/Ternary-Bonsai-2-27B-gguf` at a revision, and the server built from
+  PrismML's fork at a commit).
 - **Changing a model** is a decision for the stack as a whole, after measuring its memory next to the others:
   change it in `REFERENCE_SERVICE_CATALOG`, its pinned download and start order in `scripts/start-dgx-spark.sh`,
   `compose.dgx.yaml`, the adapter's registry where it has one (for images, `BACKENDS` in

@@ -64,7 +64,7 @@ describe("the stack's settings", () => {
     }, "sk-cloud");
     const store = await start();
     const settings = await store.readSettings();
-    expect(settings.endpoints.llm).toEqual({ baseUrl: "http://host.docker.internal:8331/v1", model: "saluki-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
+    expect(settings.endpoints.llm).toEqual({ baseUrl: "http://host.docker.internal:8331/v1", model: "bonsai-2-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
     expect(settings.endpoints.ocr.model).toBe("PaddleOCR-VL-1.6");
     expect(settings.endpoints["image-generation"].model).toBe("Qwen-Image-2.1-Turbo");
     expect(settings.endpoints["music-generation"].enabled).toBe(true);
@@ -79,7 +79,7 @@ describe("the stack's settings", () => {
     });
     const store = await start();
     const settings = await store.readSettings();
-    expect(settings.endpoints.llm).toMatchObject({ baseUrl: "http://192.0.2.10:8331/v1", model: "saluki-27b" });
+    expect(settings.endpoints.llm).toMatchObject({ baseUrl: "http://192.0.2.10:8331/v1", model: "bonsai-2-27b" });
     expect(settings.endpoints["video-generation"].enabled).toBe(false);
     expect(settings.webSearch.enabled).toBe(false);
   });
@@ -105,7 +105,7 @@ describe("the stack's settings", () => {
     expect(saved.endpoints).toEqual(settings.endpoints);
     expect(saved.webSearch).toEqual(settings.webSearch);
     expect(saved.systemStatus).toEqual(settings.systemStatus);
-    expect((await store.readSettings()).endpoints.llm.model).toBe("saluki-27b");
+    expect((await store.readSettings()).endpoints.llm.model).toBe("bonsai-2-27b");
   });
 
   it("starts new conversations with web search on", async () => {
