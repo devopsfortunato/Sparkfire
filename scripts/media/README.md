@@ -4,7 +4,7 @@ The clips in `.github/media/` are recordings of the real app on a DGX Spark, wit
 files only. These scripts recreate them after UI changes. The app, the recording and the editing run in
 containers; `populate-demo.sh` and the dataset download run on the host and need `curl` and `jq`. Run the
 commands from the repository root on the Spark, with the stack up, video included
-(`./scripts/start-dgx-spark.sh --accept-model-licenses`). The demo copy uses the stack's services, Saluki among
+(`./scripts/start-dgx-spark.sh --accept-model-licenses`). The demo copy uses the stack's services, Bonsai 2 among
 them, and its own monitor and SearXNG.
 
 | File | Role |

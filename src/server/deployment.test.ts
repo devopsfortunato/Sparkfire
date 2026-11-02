@@ -44,29 +44,33 @@ describe("web search service", () => {
   });
 });
 
-describe("Saluki", () => {
+describe("Ternary Bonsai 2 27B", () => {
   const read = (file: string) => fs.readFile(new URL(`../../${file}`, import.meta.url), "utf8");
 
-  it("builds llama-server from the pinned llama.cpp commit its image tag names", async () => {
+  it("builds llama-server from the PrismML fork at the pinned commit its image tag names", async () => {
     const [dockerfile, compose] = await Promise.all([read("services/dgx-models/llama-server/Dockerfile"), read("compose.dgx.yaml")]);
-    const ref = dockerfile.match(/ARG LLAMA_CPP_REF=(\S+)/)?.[1];
-    expect(ref).toBe("b11576");
-    expect(dockerfile).toContain("ARG LLAMA_CPP_COMMIT=358a420ec4ed59b6b0be08b1d1f71dd478b99a99");
+    expect(dockerfile.match(/ARG LLAMA_CPP_REF=(\S+)/)?.[1]).toBe("prism");
+    expect(dockerfile).toContain("ARG LLAMA_CPP_REPO=https://github.com/PrismML-Eng/llama.cpp.git");
+    expect(dockerfile).toContain("ARG LLAMA_CPP_COMMIT=1a07bfa5f4144274c8f1c9963821dd9d9a51854b");
     expect(dockerfile).toContain("-DCMAKE_CUDA_ARCHITECTURES=121");
-    expect(compose.match(/image:\s+sparkfire\/llama-server:(\S+)/)?.[1]).toBe(ref);
+    expect(compose.match(/image:\s+sparkfire\/llama-server:(\S+)/)?.[1]).toBe("prism-1a07bfa");
   });
 
-  it("serves the files the start script downloads as saluki-27b on 8331, with tool calls and image input", async () => {
+  it("serves the files the start script downloads as bonsai-2-27b on 8331, with tool calls and image input", async () => {
     const [compose, script] = await Promise.all([read("compose.dgx.yaml"), read("scripts/start-dgx-spark.sh")]);
-    const service = compose.slice(compose.indexOf("  saluki:\n"), compose.indexOf("  parakeet:\n"));
-    for (const file of ["Underdog-Saluki-27B-1.0-IQ2-mix.gguf", "mmproj-Underdog-Saluki-27B-1.0-F16.gguf"]) {
-      expect(service).toContain(`/models/ConwayResearch/Underdog-Saluki-27B-1.0/${file}`);
+    const service = compose.slice(compose.indexOf("  bonsai:\n"), compose.indexOf("  parakeet:\n"));
+    for (const file of ["Ternary-Bonsai-2-27B-PTQ1_0.gguf", "Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf"]) {
+      expect(service).toContain(`/models/prism-ml/Ternary-Bonsai-2-27B-gguf/${file}`);
       expect(script).toContain(`"${file}"`);
     }
-    expect(service).toMatch(/- --alias\n\s+- saluki-27b\n/);
+    expect(script).toContain("94dd51cdbbec5309ed8b76a12f3268bc4fdceb93");
+    expect(service).toMatch(/- --alias\n\s+- bonsai-2-27b\n/);
+    expect(service).toContain("- --mmproj");
     expect(service).toContain("- --jinja");
+    expect(service).toContain("- --image-max-tokens");
+    expect(service).toMatch(/- --image-max-tokens\n\s+- "2048"\n/);
     expect(service).toMatch(/- --port\n\s+- "8331"\n/);
-    expect(script).toContain('start_service saluki "LLM (Saluki 27B)" "http://127.0.0.1:8331/health"');
+    expect(script).toContain('start_service bonsai "LLM (Ternary Bonsai 2 27B)" "http://127.0.0.1:8331/health"');
   });
 });
 

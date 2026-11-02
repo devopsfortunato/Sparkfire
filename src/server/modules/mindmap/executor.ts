@@ -126,8 +126,8 @@ export async function processMindMap(job: JobManifest, run: WorkflowRun, signal?
     }
   }
   const system = `You create useful, factual mind maps. Return one JSON object only, with no Markdown or commentary. Use this exact shape: {"title":"Map title","root":{"label":"Root topic","note":"Optional short context","children":[{"label":"Branch","note":"Optional useful detail","children":[]}]}}. Keep labels concise, put supporting context in notes, remove repetition, preserve the source language, and never exceed the requested depth or breadth.`;
-  // Thinking off: a reasoning model such as Saluki otherwise spends the whole token budget thinking and returns
-  // no map at all (docs/validation.md). Structuring JSON does not need it.
+  // Thinking off: a reasoning model such as Ternary Bonsai 2 otherwise spends the whole token budget thinking and
+  // returns no map at all (docs/validation.md). Structuring JSON does not need it.
   const extraBody = { response_format: { type: "json_object" }, ...thinkingOptions("off") };
   await report(job.id, { status: "processing", progress: 15, stage: "Structuring mind map", startedAt: run.startedAt || new Date().toISOString() });
   let response = await chatCompletion(endpoint, [{ role: "system", content: system }, { role: "user", content }], {

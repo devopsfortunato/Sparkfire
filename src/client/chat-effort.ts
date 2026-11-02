@@ -25,7 +25,7 @@ export function saveChatEffort(effort: ChatEffort) {
 
 // Friendly names for the model ids this fork's DGX backends serve; any other id is shown as configured.
 const MODEL_LABELS: Record<string, string> = {
-  "saluki-27b": "Saluki 27B",
+  "bonsai-2-27b": "Ternary Bonsai 2 27B",
 };
 
 export function modelLabel(model?: string) {

@@ -16,7 +16,7 @@ describe("reference stack settings", () => {
     expect(settings.setup.completedAt).toBeTruthy();
     expect(settings.systemStatus.baseUrl).toBe("http://192.0.2.10:8330");
     expect(Object.fromEntries(Object.entries(settings.endpoints).map(([kind, endpoint]) => [kind, `${endpoint.model} ${endpoint.baseUrl} ${endpoint.enabled}`]))).toEqual({
-      llm: "saluki-27b http://192.0.2.10:8331/v1 true",
+      llm: "bonsai-2-27b http://192.0.2.10:8331/v1 true",
       ocr: "PaddleOCR-VL-1.6 http://192.0.2.10:8332/v1 true",
       stt: "Parakeet-TDT-0.6B-v3 http://192.0.2.10:8333/v1 true",
       translation: "Hy-MT2-1.8B-FP8 http://192.0.2.10:8334/v1 true",
@@ -39,7 +39,7 @@ describe("reference stack settings", () => {
     const own = { baseUrl: "https://llm.example/v1", model: "my-model", apiKey: "sk-cloud", enabled: true, capabilities: ["text" as const] };
     const configured = { ...structuredClone(defaultSettings), endpoints: { ...defaultSettings.endpoints, llm: own, ocr: { ...own, model: "Unlimited-OCR" }, grounding: own } };
     const settings = referenceSettingsForHost(configured, "192.0.2.10", "all-in-one");
-    expect(settings.endpoints.llm).toEqual({ baseUrl: "http://192.0.2.10:8331/v1", model: "saluki-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
+    expect(settings.endpoints.llm).toEqual({ baseUrl: "http://192.0.2.10:8331/v1", model: "bonsai-2-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
     expect(settings.endpoints.ocr).toEqual({ baseUrl: "http://192.0.2.10:8332/v1", model: "PaddleOCR-VL-1.6", apiKey: "", enabled: true });
     expect(settings.endpoints.grounding).toEqual({ baseUrl: "", model: "", apiKey: "", enabled: false });
   });

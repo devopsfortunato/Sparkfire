@@ -29,7 +29,7 @@ services:
       VIDEO_GENERATION_PORT: ${SPARKFIRE_VIDEO_PORT-8337}
       VIDEO_COMFY_PORT: "8347"
       MUSIC_GENERATION_PORT: "8339"
-      LLM_MODEL_NAME: saluki-27b
+      LLM_MODEL_NAME: bonsai-2-27b
       IMAGE_GENERATION_MODEL: Qwen-Image-2.1-Turbo
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8330/health', timeout=2)"]

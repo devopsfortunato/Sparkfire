@@ -6,8 +6,8 @@ import type { EndpointKind, ModelInputCapability, Settings } from "./contracts.j
  */
 export const REFERENCE_SERVICE_CATALOG = {
   systemStatus: { port: 8330, label: "System status" },
-  // Saluki 27B in llama-server.
-  llm: { port: 8331, model: "saluki-27b" },
+  // Ternary Bonsai 2 27B in llama-server.
+  llm: { port: 8331, model: "bonsai-2-27b" },
   ocr: { port: 8332, model: "PaddleOCR-VL-1.6" },
   stt: { port: 8333, model: "Parakeet-TDT-0.6B-v3" },
   translation: { port: 8334, model: "Hy-MT2-1.8B-FP8" },
@@ -16,7 +16,7 @@ export const REFERENCE_SERVICE_CATALOG = {
   musicGeneration: { port: 8339, model: "YuE2-3B" },
 } as const;
 
-/** Saluki reads images through its --mmproj and answers tool calls with llama-server's --jinja. */
+/** Ternary Bonsai 2 27B reads images through --mmproj and answers tool calls with llama-server's --jinja. */
 export const REFERENCE_LLM_CAPABILITIES: readonly ModelInputCapability[] = ["text", "image", "tools"];
 
 /** SearXNG as the app reaches it on the stack's compose network (compose.search.yaml). */

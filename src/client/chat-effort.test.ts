@@ -34,7 +34,7 @@ describe("chat effort", () => {
 
 describe("modelLabel", () => {
   it("names the fork's models and passes others through", () => {
-    expect(modelLabel("saluki-27b")).toBe("Saluki 27B");
+    expect(modelLabel("bonsai-2-27b")).toBe("Ternary Bonsai 2 27B");
     expect(modelLabel("my-model")).toBe("my-model");
     expect(modelLabel(undefined)).toBe("");
   });

@@ -65,11 +65,11 @@ class ProcessServiceTests(unittest.TestCase):
     def test_names_the_llama_server_engine_as_the_llm_from_its_command_line(self):
         directory = Path(self.proc.name) / "4646"
         directory.mkdir()
-        args = ["llama-server", "--model", "/models/ConwayResearch/x.gguf", "--alias", "saluki-27b", "--port", "8331"]
+        args = ["llama-server", "--model", "/models/prism-ml/x.gguf", "--alias", "bonsai-2-27b", "--port", "8331"]
         (directory / "cmdline").write_bytes(b"\0".join(part.encode() for part in args) + b"\0")
         self.assertEqual(
             server.resolve_process_service(4646),
-            {"service": "llm", "serviceLabel": "LLM", "port": 8331, "model": "saluki-27b"},
+            {"service": "llm", "serviceLabel": "LLM", "port": 8331, "model": "bonsai-2-27b"},
         )
 
     def test_names_the_music_service_by_its_script(self):

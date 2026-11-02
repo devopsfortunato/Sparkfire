@@ -43,8 +43,8 @@ PROCESS_SIGNATURES = {
     # parakeet.cpp's engine (a private port behind the ASR adapter) is a binary whose environment this container
     # cannot read, so its command line names it; the adapter's script has an underscore and does not match.
     "parakeet-server": ("asr", "ASR", int(os.getenv("ASR_PORT", "8333")), os.getenv("ASR_MODEL_NAME", "Parakeet-TDT-0.6B-v3")),
-    # llama.cpp's llama-server, which serves Saluki, is a binary like parakeet-server.
-    "llama-server": ("llm", "LLM", int(os.getenv("LLM_PORT", "8331")), os.getenv("LLM_MODEL_NAME", "saluki-27b")),
+    # llama.cpp's llama-server, which serves Ternary Bonsai 2, is a binary like parakeet-server.
+    "llama-server": ("llm", "LLM", int(os.getenv("LLM_PORT", "8331")), os.getenv("LLM_MODEL_NAME", "bonsai-2-27b")),
     "hy_server.py": ("translation", "Translation", int(os.getenv("TRANSLATION_PORT", "8334")), "Hy-MT2-1.8B-FP8"),
     "locate_server.py": ("grounding", "Grounding", int(os.getenv("GROUNDING_PORT", "8335")), "nvidia/LocateAnything-3B"),
     "music_server.py": ("music-generation", "Music generation", int(MUSIC_GENERATION_PORT or "8339"), os.getenv("MUSIC_GENERATION_MODEL", "YuE2-3B")),

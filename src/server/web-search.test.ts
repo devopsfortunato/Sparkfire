@@ -51,7 +51,7 @@ describe("SearXNG provider", () => {
 describe("web search availability", () => {
   it("needs a configured service and a model that declares tool calling", () => {
     const settings = structuredClone(defaultSettings);
-    // A model that has not declared tool calling (Saluki, the default, has).
+    // A model that has not declared tool calling (Bonsai 2, the default, does).
     settings.endpoints.llm.capabilities = ["text"];
     expect(webSearchAvailable(settings)).toBe(false);
     settings.webSearch = { enabled: true, provider: "searxng", baseUrl: "http://127.0.0.1:8338" };

@@ -22,8 +22,8 @@ describe("bundled service catalog", () => {
     expect(Object.values(defaultSettings.endpoints).every((endpoint) => !endpoint.baseUrl && !endpoint.enabled)).toBe(true);
   });
 
-  it("names Saluki as the language model, with its image input and tool calling", () => {
-    expect(defaultSettings.endpoints.llm).toMatchObject({ baseUrl: "", model: "saluki-27b", enabled: false, capabilities: ["text", "image", "tools"] });
+  it("names Bonsai 2 as the language model, with its image input and tool calling", () => {
+    expect(defaultSettings.endpoints.llm).toMatchObject({ baseUrl: "", model: "bonsai-2-27b", enabled: false, capabilities: ["text", "image", "tools"] });
   });
 
   it("takes only addresses from the environment, never models or keys", async () => {
@@ -34,7 +34,7 @@ describe("bundled service catalog", () => {
     vi.resetModules();
     try {
       const seeded = (await import("./config.js")).defaultSettings;
-      expect(seeded.endpoints.llm).toEqual({ baseUrl: "http://host.docker.internal:8331/v1", model: "saluki-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
+      expect(seeded.endpoints.llm).toEqual({ baseUrl: "http://host.docker.internal:8331/v1", model: "bonsai-2-27b", apiKey: "", enabled: true, capabilities: ["text", "image", "tools"] });
       expect(seeded.endpoints.ocr.model).toBe("PaddleOCR-VL-1.6");
     } finally {
       vi.unstubAllEnvs();

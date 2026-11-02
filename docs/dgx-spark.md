@@ -52,10 +52,10 @@ The script:
 
 1. verifies Linux ARM64, Docker Compose and NVIDIA GPU access;
 2. builds Sparkfire and the thin model API adapters;
-3. downloads the stack's models from their publishers into `data/dgx-models/`, at pinned revisions except Saluki's for now;
+3. downloads the stack's models from their publishers into `data/dgx-models/`, at their pinned revisions;
 4. removes the containers left from before the rename to Sparkfire, retired services among them;
 5. on a fresh start, checks that about 64 GiB are free, which the stack needs while its models load, and stops otherwise (`--skip-memory-check` overrides it);
-6. starts the model servers one at a time, Saluki first, and waits for each health endpoint;
+6. starts the model servers one at a time, Ternary Bonsai 2 (the chat model) first, and waits for each health endpoint;
 7. starts SearXNG and the read-only system monitor; and
 8. for an all-in-one deployment, starts Redis and Sparkfire before reporting the workspace URL.
 
@@ -70,7 +70,7 @@ HF_TOKEN=hf_... ./scripts/start-dgx-spark.sh --accept-model-licenses
 | Port | Service | Model/backend |
 | ---: | --- | --- |
 | 8330 | System status | Lightweight read-only Python API |
-| 8331 | LLM | Underdog Saluki 27B (`saluki-27b`) / llama.cpp `llama-server` b11576 |
+| 8331 | LLM | Ternary Bonsai 2 27B (`bonsai-2-27b`) / llama.cpp `llama-server` from PrismML's fork, 1a07bfa |
 | 8332 | OCR | `PaddlePaddle/PaddleOCR-VL-1.6` / layout adapter + vLLM (8342) |
 | 8333 | Speech recognition | `nvidia/parakeet-tdt-0.6b-v3` / parakeet.cpp v0.5.0 |
 | 8334 | Translation | `tencent/Hy-MT2-1.8B-FP8` / Transformers |
@@ -192,4 +192,4 @@ Sparkfire runs on this stack only: users do not pick models, URLs or keys, and S
 
 ### Upgrading from the six-model stack
 
-`./scripts/start-dgx-spark.sh` removes the containers of retired services, which would otherwise keep restarting and hold memory the stack's budget assumes is free. It downloads and starts the models the stack now uses, Saluki among them, and the app points its services at them on its next start, whatever the settings held. Their images and earlier model files stay on disk until you delete them.
+`./scripts/start-dgx-spark.sh` removes the containers of retired services, which would otherwise keep restarting and hold memory the stack's budget assumes is free. `sparkfire-saluki`, the chat model's container before Ternary Bonsai 2, is removed by name. It downloads and starts the models the stack now uses, the chat model among them, and the app points its services at them on its next start, whatever the settings held. Their images and earlier model files stay on disk until you delete them.

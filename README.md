@@ -93,7 +93,7 @@ YuE2's weights are non-commercial with a creator permission: you may publish and
 
 #### Chat with your files
 
-Attach up to 8 images, PDFs, text or code files to a message with the + button, by dragging them in or by pasting. Choose how hard the model should think (Off, Low, Medium, High), and watch its reasoning before the answer. Documents are read as text, up to 60,000 characters each; images, and scanned PDFs as up to four page images, go to the model as pictures, which Saluki reads. Any finished job can also be opened in a conversation with **Ask in chat**. Answers run on the server, so leaving the page, switching conversations or reloading does not stop them: come back and the answer is still being written, or already saved. Restarting the server does stop an answer in progress.
+Attach up to 8 images, PDFs, text or code files to a message with the + button, by dragging them in or by pasting. Choose how hard the model should think (Off, Low, Medium, High), and watch its reasoning before the answer. Documents are read as text, up to 60,000 characters each; images, and scanned PDFs as up to four page images, go to the model as pictures, which Bonsai 2 reads. Any finished job can also be opened in a conversation with **Ask in chat**. Answers run on the server, so leaving the page, switching conversations or reloading does not stop them: come back and the answer is still being written, or already saved. Restarting the server does stop an answer in progress.
 
 [![Attaching the report, asking for its risks with Low thinking, the live reasoning and the answer (click for the MP4)](.github/media/chat.webp)](.github/media/chat.mp4)
 
@@ -101,7 +101,7 @@ Attach up to 8 images, PDFs, text or code files to a message with the + button, 
 
 Turn on **Web** in a conversation and the model can search the web and read pages before it answers, through a local [SearXNG](https://github.com/searxng/searxng). It takes up to six rounds of searches (five results each) and page reads, then answers with numbered sources; a foldable block lists what it searched and read. New conversations start with the switch on.
 
-SearXNG runs with the stack on the Spark, and Saluki answers the tool calls. Searches reach the engines behind SearXNG, so turn the switch off in conversations that must stay local. Page reads refuse local and private network addresses. A workspace on another machine has no web search, because SearXNG listens only on the Spark. Details in [docs/fork.md](docs/fork.md#chat).
+SearXNG runs with the stack on the Spark, and Bonsai 2 answers the tool calls. Searches reach the engines behind SearXNG, so turn the switch off in conversations that must stay local. Page reads refuse local and private network addresses. A workspace on another machine has no web search, because SearXNG listens only on the Spark. Details in [docs/fork.md](docs/fork.md#chat).
 
 [![Turning Web on, asking a current question, the searches and pages as they run, then the answer with numbered sources (click for the MP4)](.github/media/websearch.webp)](.github/media/websearch.mp4)
 
@@ -156,7 +156,7 @@ cd Sparkfire
 
 - The first run takes 30 to 60 minutes, mostly downloads; later runs reuse everything and take a few minutes.
 - `--accept-model-licenses` confirms you have read the [model licenses](#model-licenses). FastH3, the video model, is not licensed in the EU, the UK, South Korea or the US: add `--video-backend none` there.
-- The models are fixed: Saluki 27B, PaddleOCR-VL-1.6, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3 and YuE2, with SearXNG for web search ([Models and memory](#models-and-memory)). There is nothing to choose.
+- The models are fixed: Ternary Bonsai 2 27B, PaddleOCR-VL-1.6, Parakeet, Hy-MT2, Qwen-Image-2.1-Turbo, FastH3 and YuE2, with SearXNG for web search ([Models and memory](#models-and-memory)). There is nothing to choose.
 - Open `http://<spark-host>:54321` from any device on your network.
 
 | To | Run |
@@ -168,14 +168,15 @@ cd Sparkfire
 
 ### The chat model
 
-Chat, mind maps and LLM prompts in workflows use [Underdog Saluki 27B](https://huggingface.co/ConwayResearch/Underdog-Saluki-27B-1.0), a 2-bit GGUF of Qwen3.8-27B with a vision add-on, in `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp): 13 GiB of GPU memory, 22 tokens a second, and it reads images and calls tools. The start script builds `llama-server` for the Spark's GPU, downloads Saluki and starts it first, on port 8331, with the flags its memory was measured with:
+Chat, mind maps and LLM prompts in workflows use [Ternary Bonsai 2 27B](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf), PrismML's ternary rebuild of Qwen3.8-27B: every language-model weight is -1, 0 or 1, with one scale per 128 of them, packed at 1.75 bits for 5.95 GB in total. It needs `llama-server` built from [PrismML's llama.cpp fork](https://github.com/PrismML-Eng/llama.cpp), whose ternary kernels upstream lacks: about 10.5 GiB of GPU memory with the 64k context and 34 tokens a second, expected from the verified GB10 recipe ([docs/validation.md](docs/validation.md)), and it reads images and calls tools. It was trained for 262k tokens of context and the stack serves 64k, which makes prefill about 1.6 times slower than Saluki's, the trade for a stronger model in less memory. The start script builds the server for the Spark's GPU, downloads the pinned files and starts it first, on port 8331, with these flags:
 
 ```bash
-llama-server -m Underdog-Saluki-27B-1.0-IQ2-mix.gguf --mmproj mmproj-Underdog-Saluki-27B-1.0-F16.gguf \
-  --jinja -ngl 99 -fa on -c 65536 --parallel 1 --host 0.0.0.0 --port 8331 --alias saluki-27b
+llama-server -m Ternary-Bonsai-2-27B-PTQ1_0.gguf --mmproj Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf \
+  --alias bonsai-2-27b --jinja --image-max-tokens 2048 -ngl 99 -fa on -c 65536 --parallel 1 \
+  --host 0.0.0.0 --port 8331
 ```
 
-Mind maps ask the model to answer without thinking, so Saluki's reasoning cannot use up their token budget; chat lets you choose the thinking level per message. Saluki's download is not pinned to a revision yet, unlike the other models.
+Mind maps ask the model to answer without thinking, so its reasoning cannot use up their token budget; chat lets you choose the thinking level per message. Its download is pinned to a revision, like the other models.
 
 ### Other ways to run it
 
@@ -220,7 +221,7 @@ git pull
 
 The script rebuilds what changed and leaves `data/` alone. Every start points the services at the stack's models, so no setting needs changing after an upgrade, whatever was chosen before.
 
-- **From the six-model stack or an earlier model set:** the start script removes the retired services' containers and downloads the models the stack now uses. Earlier model files stay in `data/dgx-models` until you delete them; see [Upgrading from the six-model stack](docs/dgx-spark.md#upgrading-from-the-six-model-stack).
+- **From the six-model stack or an earlier model set:** the start script removes the retired services' containers, `sparkfire-saluki` among them after the move to Ternary Bonsai 2, and downloads the models the stack now uses. Earlier model files stay in `data/dgx-models` until you delete them; see [Upgrading from the six-model stack](docs/dgx-spark.md#upgrading-from-the-six-model-stack).
 - **An install configured by hand:** the stack replaces services set up in Settings or with **Configure manually**, which is gone. A workspace that is not on the stack goes through setup in the browser again.
 - **From an install made before the rename to Sparkfire:** point your checkout at this repository and run the start script again. It removes the old containers and starts the `sparkfire-` ones, reusing your jobs, settings and downloaded models; only `SPARKFIRE_*` variables in `.env` are read.
 
@@ -236,7 +237,7 @@ Sparkfire's models are fixed: one per service, chosen and measured to share the 
 
 | Capability | Model | Port |
 | --- | --- | --- |
-| Chat, mind maps, LLM prompts | [Saluki 27B](#the-chat-model) in llama-server | 8331 |
+| Chat, mind maps, LLM prompts | [Ternary Bonsai 2 27B](#the-chat-model) in llama-server | 8331 |
 | OCR | [PaddleOCR-VL-1.6](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6), with page layout, in vLLM | 8332 |
 | Speech recognition | [Parakeet-TDT-0.6B-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) in parakeet.cpp | 8333 |
 | Translation | [Hy-MT2-1.8B-FP8](https://huggingface.co/tencent/Hy-MT2-1.8B-FP8) | 8334 |
@@ -265,7 +266,7 @@ Measured on one Spark with every service loaded and idle. GPU is what the contai
 | 7 | `sparkfire-hy-mt2` | Hy-MT2-1.8B-FP8 translation | 2.4 GiB | 3.0 GiB | **5.4 GiB** |
 | 8 | `sparkfire-paddleocr-vl` | PaddleOCR-VL layout stage (PP-DocLayoutV3, on the CPU) | — | 0.8 GiB | 0.8 GiB |
 | 9 | `sparkfire-video-generation` | FastH3 in ComfyUI, behind a small adapter; nothing loaded until a job | 0.7 GiB | 0.1 GiB | **0.8 GiB** idle |
-| 10 | `sparkfire-saluki` | Saluki 27B in llama-server, with its vision add-on and a 64k context | 13.0 GiB | 8.5 GiB, the memory-mapped model file, reclaimable | **13–21.5 GiB** |
+| 10 | `sparkfire-bonsai` | Ternary Bonsai 2 27B in llama-server, with its vision add-on and a 64k context | 10.5 GiB | 6.6 GiB, the memory-mapped model file, reclaimable | **10.5–17 GiB** |
 | 11 | `sparkfire-music-generation` | YuE2-3B; nothing loaded until a song | — | — | about 0 idle |
 | 12 | `sparkfire-searxng` | SearXNG | — | capped at 0.5 GiB | not measured |
 
@@ -273,15 +274,15 @@ Parakeet grows to 1.6–1.8 GiB of GPU memory and up to 1.5 GiB of RAM while it 
 
 | State | Memory used |
 | --- | --- |
-| All services idle | about 29 GiB, plus Saluki's 13–21.5 GiB |
+| All services idle | about 29 GiB, plus Bonsai 2's 10.5–17 GiB |
 | Busy (two jobs at a time, the app's default) | about 38 GiB at peak |
-| Starting up | about 39 GiB at peak, plus Saluki; a fresh start first checks that 64 GiB are free (`--skip-memory-check` to override) |
+| Starting up | about 39 GiB at peak, plus Bonsai 2; a fresh start first checks that 64 GiB are free (`--skip-memory-check` to override) |
 | A video job (on top of the above) | +35–39 GiB for Fast at 480p, +41–48 GiB for Fast at 720p or longer, +44–57 GiB for Sharp; the weights stay loaded until 10 minutes without a job |
 | A song (on top of the above) | about +20 GiB at its peak, short or long; about 15 GiB stays loaded until 10 minutes without a song |
 
 These are the measured figures from [docs/validation.md](docs/validation.md) minus the removed Qwen3.6 LLM (31 GiB) and LocateAnything (10.9 GiB); the Parakeet idle figure was measured on the full stack. The older 84–96 GiB figures in that file were measured with the Qwen3.6 LLM and an earlier speech model resident, before Sparkfire removed them.
 
-Saluki's row was measured on its own next to the stack (docs/validation.md). Measured together with Saluki, the largest video job (Sharp, 1344 × 768, 10 s) brought the Spark to 106.6 of 121 GiB.
+Bonsai 2's row is the verified GB10 recipe's llama-bench figures plus the 64k cache arithmetic, not a Sparkfire measurement yet ([docs/validation.md](docs/validation.md)). Measured together with Saluki (the chat model at the time) loaded, the largest video job (Sharp, 1344 × 768, 10 s) brought the Spark to 106.6 of 121 GiB.
 
 **Keep the queue at two workers** (**Settings → Processing → Concurrent jobs**, the default) on a Spark. The queue sets how many jobs run at once besides videos and songs, which have their own lane (below), and the app reads it only at start. A workflow run counts as one job for its whole run, video and song nodes included. Two is the safer setting: with a video running, two more jobs such as a large image can run beside it, and the video and the image set the memory peak. Jobs past the second wait their turn. Raising the number adds less memory than you might expect, because OCR and transcription use little beyond what their services already hold (vLLM reserves PaddleOCR-VL's memory at start, and Parakeet works through 30-second chunks). What it does add is GPU contention, which slows every running job. Chat answers do not go through the queue, so they run alongside whatever the queue holds with either setting.
 
@@ -299,7 +300,7 @@ A song next to a busy stack (images, OCR, speech, translation and chat all worki
 
 ## Video: choices and trade-offs
 
-FastH3 shares one Spark with the other six models, so each video setting trades quality or speed against memory. Every number here was measured on the Spark, with Saluki loaded; the details are in [docs/validation.md](docs/validation.md) and the runtime decision in [ADR 0002](docs/adr/0002-video-service-comfyui.md).
+FastH3 shares one Spark with the other six models, so each video setting trades quality or speed against memory. Every number here was measured on the Spark, with Saluki (the chat model at the time) loaded; the details are in [docs/validation.md](docs/validation.md) and the runtime decision in [ADR 0002](docs/adr/0002-video-service-comfyui.md).
 
 | Choice | What Sparkfire uses | What it costs | Why |
 | --- | --- | --- | --- |
@@ -314,7 +315,7 @@ FastH3 shares one Spark with the other six models, so each video setting trades 
 | Prompt | The form fills the model's own sections: the scene (`integrated_multimodal_description`, as `[Shot 1]`), `overall_soundscape` and `non_diegetic_music` | Multi-shot prompts have to be written in that format by hand | FastH3 was trained on sectioned prompts; a prompt already written that way is kept as is |
 | First frame | Scaled to the chosen size with a centre crop | An image of another shape loses its edges | Keeps the size you picked. The prompt should describe the image, so a generated image hands over the prompt that made it |
 | Memory | Weights load on the first job and unload after 10 idle minutes, or before switching variants | A cold job waits about 10 s longer; ComfyUI keeps about 5 GiB after unloading | Holding them would leave the Spark 34–44 GiB heavier between jobs |
-| Concurrency | Videos take turns with songs in the [GPU lane](#heavy-jobs-take-turns), on their own queue | A second video waits for the first, shown as *Waiting for the GPU*; other jobs do not wait behind it, except behind a workflow whose video node is waiting | The largest job (Sharp, 1344 × 768, 10 s) brought the Spark to 106.6 of 121 GiB with Saluki loaded, leaving about 14 GiB for other jobs |
+| Concurrency | Videos take turns with songs in the [GPU lane](#heavy-jobs-take-turns), on their own queue | A second video waits for the first, shown as *Waiting for the GPU*; other jobs do not wait behind it, except behind a workflow whose video node is waiting | The largest job (Sharp, 1344 × 768, 10 s) brought the Spark to 106.6 of 121 GiB with Saluki (the chat model at the time) loaded, leaving about 14 GiB for other jobs |
 | Transfer | The MP4 streams to disk as the response body; the app waits up to an hour, and the service stops a render after 30 minutes | A long render keeps one connection open | The video never sits in memory as base64 |
 | Repeats | ComfyUI caches identical requests | The same prompt, seed and settings give back the same video | It returns in about 2 s; change the seed under Advanced for a new take |
 | Default install | Video is built and downloaded unless you pass `--video-backend none` | About 53 GB more disk and a longer first install | Video with sound is part of Sparkfire; the flag covers the excluded territories, and onboarding treats video as optional |
@@ -337,7 +338,7 @@ Per job, the form sets Fast or Sharp, the size, the length, the sound, the music
 
 - **Services.** Settings → Services shows each service of the stack, its fixed model and where it runs, with a connection test. Every start points them at the stack's models, and a save from Settings cannot change them. To move the stack to another Spark, run setup again from **General → Deployment**.
 - **General.** Appearance (dark, light or system); the time zone for conversation times, job and conversation folder names and the date given to web search; and **Deployment**, which runs setup again to say where the stack runs.
-- **Language model.** Saluki takes text and images and answers tool calls, so chat, mind maps and workflow LLM nodes can pass pictures and scanned PDF pages, and chat offers web search.
+- **Language model.** Bonsai 2 takes text and images and answers tool calls, so chat, mind maps and workflow LLM nodes can pass pictures and scanned PDF pages, and chat offers web search.
 - **Web search.** The stack's SearXNG, run by `compose.search.yaml` with the settings in `services/searxng/`, which the app reaches as `http://searxng:8080`.
 - **Processing.** A transcription profile (Balanced, Low-memory, High-throughput or Custom) sets the processing window, its overlap, the maximum output tokens, the speech request timeout and adaptive recovery. Below it are the number of concurrent jobs, read at start, and recovery attempts. PDF pages are rasterised at 175 DPI; change `pdf.dpi` in `settings.json` for another resolution.
 - **Prompts.** The presets that **Run a preset** offers on a finished job: a name, a system prompt, a user template with `{{text}}`, and limits.
@@ -439,7 +440,7 @@ Uploaded content goes to the stack's services on your Spark, so a deployment is 
 
 | Symptom | What to do |
 | --- | --- |
-| A service shows offline in the sidebar | `./scripts/start-dgx-spark.sh status` lists the containers and endpoints. Read the service's log with `docker logs --tail 120 sparkfire-<service>` (for example `sparkfire-saluki`), then use its connection test in **Settings → Services** |
+| A service shows offline in the sidebar | `./scripts/start-dgx-spark.sh status` lists the containers and endpoints. Read the service's log with `docker logs --tail 120 sparkfire-<service>` (for example `sparkfire-bonsai`), then use its connection test in **Settings → Services** |
 | A model service keeps restarting | It probably does not fit in memory beside the others. Check `free -g` and `nvidia-smi`, stop it with `docker stop sparkfire-<service>`, and run the start script again when there is room; it starts the services in a memory-safe order |
 | The start script stops at the memory check | A fresh start wants 64 GiB free. Stop what else runs on the Spark, or pass `--skip-memory-check` if you know the stack fits |
 | A video or song shows *Waiting for memory* | Something else holds the memory it needs. It retries for up to 30 minutes; free memory on the Spark or cancel the job |
@@ -458,7 +459,7 @@ Sparkfire started as a fork of SparklingKit 0.1.5 and is now its own project. Co
 | **Gallery** | Every image and generated video with thumbnails, filters by source and model, a lightbox and a side-by-side compare |
 | **Job pages** | Transcript lines, one per sentence, that seek the player; image zoom with a before/after slider, a document outline, and run history |
 | **Chat** | Attach images, PDFs and text files; a thinking control with the reasoning shown live; answers that keep going when you leave the page; web search with cited sources |
-| **Models** | A fixed stack: Saluki 27B for chat, PaddleOCR-VL-1.6 for OCR, Parakeet-TDT-0.6B-v3 for speech, Qwen-Image-2.1-Turbo for images, FastH3 for video with sound, YuE2 for songs; seed and step controls. No grounding model |
+| **Models** | A fixed stack: Ternary Bonsai 2 27B for chat, PaddleOCR-VL-1.6 for OCR, Parakeet-TDT-0.6B-v3 for speech, Qwen-Image-2.1-Turbo for images, FastH3 for video with sound, YuE2 for songs; seed and step controls. No grounding model |
 | **Operations** | One-command install; long model calls no longer cut off after 300 seconds |
 | **Quality** | CI, CodeQL, dependency, secret and container scanning, Dependabot, and releases from Conventional Commits |
 
@@ -478,7 +479,7 @@ Sparkfire changes copyright 2026 MovieMaker93.
 
 ### Model licenses
 
-Model weights are not part of this repository. The start script downloads them after you accept their terms; the acceptance flag records that you reviewed them and does not change them. OCR, speech and translation can be used anywhere, commercially too. Underdog Saluki 27B, the chat model, is ConwayResearch's model built on Qwen3.8-27B; review its model card for its terms. Parakeet-TDT-0.6B-v3 is NVIDIA's and uses CC BY 4.0, which allows commercial use with credit (see the acknowledgements); parakeet.cpp, which runs it, is MIT.
+Model weights are not part of this repository. The start script downloads them after you accept their terms; the acceptance flag records that you reviewed them and does not change them. OCR, speech and translation can be used anywhere, commercially too. Ternary Bonsai 2 27B, the chat model, is PrismML's ternary build of Qwen3.8-27B under Apache 2.0; review its model card. Parakeet-TDT-0.6B-v3 is NVIDIA's and uses CC BY 4.0, which allows commercial use with credit (see the acknowledgements); parakeet.cpp, which runs it, is MIT.
 
 Three models have narrower terms. Qwen-Image-2.1-Turbo, the image model, uses the Qwen Research License (non-commercial). FastH3, the video model, is a distill of MiniMax H3 under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE): it grants use only "worldwide, excluding" the European Union, the United Kingdom, South Korea and the United States, asks that shared outputs be disclosed as machine-generated, and asks commercial products to display "MiniMax H3". [ComfyUI](https://github.com/comfyanonymous/ComfyUI), which runs FastH3, is GPL-3.0; it is fetched at a pinned commit when the video image is built, runs as its own process, and is not part of this repository. Start the stack with `--video-backend none` where FastH3's license does not apply.
 
@@ -490,7 +491,7 @@ YuE2, the music model, has its code under Apache 2.0 and its weights under [CC B
 
 - [SparklingKit](https://github.com/stevibe/SparklingKit) by Steven Lei, the project Sparkfire is built on.
 - The model teams whose open weights do the work: Qwen ([Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)), PaddlePaddle ([PaddleOCR-VL](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6)), Tencent ([Hy-MT2](https://huggingface.co/tencent/Hy-MT2-1.8B-FP8)), NVIDIA ([Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3), under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)), MiniMax ([MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3), whose text encoder uses Qwen's Qwen3-VL-32B weights), the Multimodal Art Projection team ([YuE2](https://github.com/multimodal-art-projection/YuE), which writes and sings the songs), and [FastVideo](https://github.com/hao-ai-lab/FastVideo) at Hao AI Lab, whose [FastH3 Trim](https://huggingface.co/FastVideo/FastVideo-FastH3-Trim-Comfy) and [FastH3 V2](https://huggingface.co/FastVideo/FastVideo-FastH3-Comfy) distills and workflow templates make the videos.
-- The chat model: [Underdog Saluki 27B](https://huggingface.co/ConwayResearch/Underdog-Saluki-27B-1.0) by ConwayResearch.
+- The chat model: [Ternary Bonsai 2 27B](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf) by PrismML.
 - The serving and tooling stack: [parakeet.cpp](https://github.com/mudler/parakeet.cpp) by mudler (MIT), which runs Parakeet from its [GGUF files](https://huggingface.co/mudler/parakeet-cpp-gguf), [vLLM](https://github.com/vllm-project/vllm), [llama.cpp](https://github.com/ggml-org/llama.cpp), [diffusers](https://github.com/huggingface/diffusers), [ComfyUI](https://github.com/comfyanonymous/ComfyUI) by comfyanonymous and Comfy-Org (GPL-3.0), which runs FastH3 with Comfy-Org's [comfy-kitchen](https://pypi.org/project/comfy-kitchen/) kernels, [PyAV](https://github.com/PyAV-Org/PyAV), which writes the disclosure into each video, [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR), React, Express, BullMQ, Vite, and [Playwright](https://playwright.dev), which records the README clips.
 - Web search: [SearXNG](https://github.com/searxng/searxng) (AGPL-3.0), which queries the search engines, and Mozilla's [Readability](https://github.com/mozilla/readability) with [linkedom](https://github.com/WebReflection/linkedom) by Andrea Giammarchi (WebReflection), which pull the main text out of the pages chat reads.
 - The demo transcript reads from [LibriSpeech](https://www.openslr.org/12) (CC BY 4.0); the demo report is fictional.
